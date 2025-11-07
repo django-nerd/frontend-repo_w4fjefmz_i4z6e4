@@ -16,9 +16,38 @@ export default function App() {
       return [];
     }
   });
+  const [usingBackend, setUsingBackend] = useState(false);
+  const backendBase = import.meta.env.VITE_BACKEND_URL || (typeof window !== 'undefined' ? window.location.origin.replace(':3000', ':8000') : '');
+
+  // Try to load from backend on mount
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const res = await fetch(`${backendBase}/api/entries`);
+        if (!res.ok) throw new Error('backend not ok');
+        const data = await res.json();
+        if (!cancelled) {
+          setEntries(Array.isArray(data) ? data : []);
+          setUsingBackend(true);
+        }
+      } catch (e) {
+        // fallback to localStorage data already in state
+        if (!cancelled) setUsingBackend(false);
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+    // Always keep a backup in localStorage for offline
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+    } catch {}
   }, [entries]);
 
   const sortedEntries = useMemo(() => {
@@ -29,8 +58,40 @@ export default function App() {
     });
   }, [entries]);
 
-  const handleAdd = (entry) => setEntries((prev) => [entry, ...prev]);
-  const handleDelete = (id) => setEntries((prev) => prev.filter((e) => e.id !== id));
+  const handleAdd = async (entry) => {
+    if (usingBackend) {
+      try {
+        const res = await fetch(`${backendBase}/api/entries`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(entry),
+        });
+        if (!res.ok) throw new Error('Failed to create');
+        const saved = await res.json();
+        setEntries((prev) => [saved, ...prev]);
+        return;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    // Fallback: local only
+    const withId = { id: crypto.randomUUID(), ...entry };
+    setEntries((prev) => [withId, ...prev]);
+  };
+
+  const handleDelete = async (id) => {
+    if (usingBackend && id) {
+      try {
+        const res = await fetch(`${backendBase}/api/entries/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Failed to delete');
+        setEntries((prev) => prev.filter((e) => (e.id || e._id) !== id));
+        return;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    setEntries((prev) => prev.filter((e) => (e.id || e._id) !== id));
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50 via-fuchsia-50 to-indigo-50 text-gray-800">

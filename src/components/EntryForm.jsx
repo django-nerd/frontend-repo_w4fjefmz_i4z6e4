@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Clock, Droplets, DollarSign, Plus } from 'lucide-react';
+import { Calendar, Clock, Droplets, Banknote, Plus } from 'lucide-react';
 
 export default function EntryForm({ onAdd }) {
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -11,7 +11,6 @@ export default function EntryForm({ onAdd }) {
     e.preventDefault();
     if (!quantity) return;
     const entry = {
-      id: crypto.randomUUID(),
       date,
       time,
       quantity: parseFloat(quantity),
@@ -53,7 +52,7 @@ export default function EntryForm({ onAdd }) {
             required
           />
         </LabeledInput>
-        <LabeledInput icon={<DollarSign className="h-4 w-4 text-emerald-600" />} label="Amount Paid">
+        <LabeledInput icon={<Banknote className="h-4 w-4 text-emerald-600" />} label="Amount Paid (₹)">
           <input
             type="number"
             min="0"

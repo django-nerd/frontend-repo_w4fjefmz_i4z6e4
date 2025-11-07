@@ -23,7 +23,7 @@ export default function SummaryCards({ entries }) {
     },
     {
       title: 'Total Paid',
-      value: `Rs ${totalAmount}`,
+      value: `₹ ${totalAmount}`,
       icon: <Wallet className="h-6 w-6" />,
       from: 'from-emerald-400',
       to: 'to-teal-500',
